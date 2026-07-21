@@ -109,12 +109,15 @@ export function AppRdv() {
     if (!onglets.some((o) => o.cle === actif)) setActif(onglets[0].cle)
   }, [onglets, actif])
 
+  // Le temps que NextAuth résolve la session, on n'affiche rien pour éviter
+  // de faire clignoter l'écran de connexion à un utilisateur déjà authentifié.
+  if (store.authLoading) return null
+
   if (!currentUser) {
     return (
       <Connexion
-        emails={store.emails}
-        onConnexion={store.seConnecter}
-        onOublierEmail={store.oublierEmail}
+        onGoogle={store.seConnecterGoogle}
+        onAdminLogin={store.seConnecterAdmin}
       />
     )
   }

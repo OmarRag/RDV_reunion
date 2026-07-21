@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { signIn, signOut, useSession } from 'next-auth/react'
 import * as storage from './storage'
 import { calculerRole, normaliserEmail } from './roles'
 import type {
@@ -28,8 +29,12 @@ const INTERVALLE_SYNC = 5000
 const ERREUR_RESEAU = 'Connexion au serveur impossible. Veuillez réessayer.'
 
 export function useStore() {
-  // Session locale à l'appareil : conservée en localStorage, comme avant.
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() =>
+  // Utilisateurs normaux : authentification réelle via Google (NextAuth).
+  const { data: session, status } = useSession()
+
+  // Accès administrateur TEMPORAIRE : saisie d'email, conservée en localStorage
+  // sur l'appareil (repris à une étape ultérieure).
+  const [adminLocal, setAdminLocal] = useState<CurrentUser | null>(() =>
     storage.get('currentUser'),
   )
   const [emails, setEmails] = useState<string[]>(() => storage.get('emails'))
@@ -38,11 +43,33 @@ export function useStore() {
   const [etat, setEtat] = useState<EtatPartage>(ETAT_VIDE)
 
   useEffect(() => {
-    storage.set('currentUser', currentUser)
-  }, [currentUser])
+    if (adminLocal) storage.set('currentUser', adminLocal)
+    else storage.remove('currentUser')
+  }, [adminLocal])
   useEffect(() => {
     storage.set('emails', emails)
   }, [emails])
+
+  // Une session Google prime sur l'accès admin local et le purge : évite de
+  // « retomber » en admin fantôme après une déconnexion Google.
+  const sessionEmail = session?.user?.email
+  useEffect(() => {
+    if (sessionEmail) setAdminLocal(null)
+  }, [sessionEmail])
+
+  // Identité effective : compte Google si présent, sinon accès admin local.
+  const currentUser = useMemo<CurrentUser | null>(() => {
+    const u = session?.user
+    if (u?.email) {
+      return {
+        email: normaliserEmail(u.email),
+        name: u.name ?? undefined,
+        prenom: u.prenom ?? undefined,
+        nom: u.nom ?? undefined,
+      }
+    }
+    return adminLocal
+  }, [session, adminLocal])
 
   const rafraichir = useCallback(async () => {
     try {
@@ -74,22 +101,26 @@ export function useStore() {
 
   // --- Session ---
 
-  const seConnecter = useCallback((email: string) => {
+  /** Lance le vrai flux OAuth Google (utilisateurs normaux). */
+  const seConnecterGoogle = useCallback(() => {
+    void signIn('google')
+  }, [])
+
+  /** Accès administrateur temporaire par saisie d'email (comme avant). */
+  const seConnecterAdmin = useCallback((email: string) => {
     const e = normaliserEmail(email)
-    setCurrentUser({ email: e })
-    // Mémorisation sans doublon, le plus récent en tête (local à l'appareil).
+    setAdminLocal({ email: e })
     setEmails((prev) => [e, ...prev.filter((x) => x !== e)])
   }, [])
 
-  const oublierEmail = useCallback((email: string) => {
-    const e = normaliserEmail(email)
-    setEmails((prev) => prev.filter((x) => x !== e))
-  }, [])
-
   const seDeconnecter = useCallback(() => {
-    setCurrentUser(null)
-    storage.remove('currentUser')
-  }, [])
+    if (sessionEmail) {
+      // Déconnexion Google : NextAuth efface le cookie de session.
+      void signOut()
+    } else {
+      setAdminLocal(null)
+    }
+  }, [sessionEmail])
 
   // --- Créneaux ---
 
@@ -217,14 +248,14 @@ export function useStore() {
 
   return {
     currentUser,
+    authLoading: status === 'loading',
     slots: etat.slots,
     appointments: etat.appointments,
     admins: etat.admins,
-    emails,
     role,
-    seConnecter,
+    seConnecterGoogle,
+    seConnecterAdmin,
     seDeconnecter,
-    oublierEmail,
     genererCreneauxSemaine,
     supprimerSlot,
     creerRendezVous,

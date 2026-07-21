@@ -46,157 +46,27 @@ function ColonneImage() {
   )
 }
 
-/** Faux écran Google — aucune authentification réelle, simple simulation. */
-function EcranGoogle({
-  emails,
-  onValider,
-  onOublier,
-  onAnnuler,
+export function Connexion({
+  onGoogle,
+  onAdminLogin,
 }: {
-  emails: string[]
-  onValider: (email: string) => void
-  onOublier: (email: string) => void
-  onAnnuler: () => void
+  onGoogle: () => void
+  onAdminLogin: (email: string) => void
 }) {
-  // On propose d'emblée les comptes connus ; sinon, saisie libre.
-  const [saisieLibre, setSaisieLibre] = useState(emails.length === 0)
+  // Accès administrateur temporaire : replié par défaut.
+  const [adminOuvert, setAdminOuvert] = useState(false)
   const [email, setEmail] = useState('')
   const [erreur, setErreur] = useState<string | null>(null)
 
-  function valider(e: React.FormEvent) {
+  function validerAdmin(e: React.FormEvent) {
     e.preventDefault()
     const valeur = email.trim()
     if (!valeur) return setErreur('Veuillez saisir votre adresse email.')
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valeur)) {
       return setErreur('Adresse email invalide.')
     }
-    onValider(valeur)
+    onAdminLogin(valeur)
   }
-
-  function oublier(cible: string) {
-    onOublier(cible)
-    // Plus aucun compte mémorisé : on bascule sur la saisie libre.
-    if (emails.length <= 1) setSaisieLibre(true)
-  }
-
-  return (
-    <div className="animate-voile fixed inset-0 z-50 flex items-center justify-center bg-encre/40 p-4 backdrop-blur-sm">
-      <div className="animate-apparition w-full max-w-md rounded-2xl border border-bordure bg-surface p-8 shadow-2xl shadow-encre/20">
-        <div className="mb-6 flex flex-col items-center text-center">
-          <LogoGoogle taille={40} />
-          <h2 className="mt-4 text-2xl font-normal text-encre-forte">
-            {saisieLibre ? 'Connexion' : 'Choisir un compte'}
-          </h2>
-          <p className="mt-1 text-sm text-doux">
-            {saisieLibre
-              ? 'Utiliser votre compte Google'
-              : 'Pour continuer vers Prise de rendez-vous'}
-          </p>
-        </div>
-
-        {saisieLibre ? (
-          <form onSubmit={valider} className="space-y-4">
-            <input
-              type="email"
-              autoFocus
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value)
-                setErreur(null)
-              }}
-              placeholder="Adresse email"
-              className={classesInput}
-            />
-            {erreur && <Alerte>{erreur}</Alerte>}
-            <p className="text-xs text-doux">
-              Simulation : aucune authentification réelle n’est effectuée.
-            </p>
-            <div className="flex items-center justify-between pt-2">
-              <Button
-                type="button"
-                variante="fantome"
-                onClick={() => {
-                  if (emails.length === 0) return onAnnuler()
-                  setErreur(null)
-                  setSaisieLibre(false)
-                }}
-              >
-                {emails.length === 0 ? 'Annuler' : 'Retour'}
-              </Button>
-              <Button type="submit">Suivant</Button>
-            </div>
-          </form>
-        ) : (
-          <div className="space-y-3">
-            <ul className="divide-y divide-bordure overflow-hidden rounded-xl border border-bordure">
-              {emails.map((e) => (
-                <li key={e} className="flex items-stretch bg-fond">
-                  <button
-                    type="button"
-                    onClick={() => onValider(e)}
-                    className="flex flex-1 items-center gap-3 px-4 py-3 text-left transition-colors duration-200 hover:bg-accent-100"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-500 text-sm font-semibold uppercase text-surface"
-                    >
-                      {e.slice(0, 1)}
-                    </span>
-                    <span className="truncate text-sm text-encre-forte">
-                      {e}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => oublier(e)}
-                    aria-label={`Retirer ${e} de la liste`}
-                    title="Retirer de la liste"
-                    className="px-4 text-lg leading-none text-doux transition-colors duration-200 hover:bg-brique-100 hover:text-brique-600"
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('')
-                setErreur(null)
-                setSaisieLibre(true)
-              }}
-              className="w-full rounded-xl border border-dashed border-bordure-forte px-4 py-3 text-sm font-semibold text-accent-600 transition-colors duration-200 hover:bg-accent-100"
-            >
-              Utiliser un autre email
-            </button>
-
-            <p className="text-xs text-doux">
-              Simulation : aucune authentification réelle n’est effectuée.
-            </p>
-
-            <div className="pt-1">
-              <Button type="button" variante="fantome" onClick={onAnnuler}>
-                Annuler
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-export function Connexion({
-  emails,
-  onConnexion,
-  onOublierEmail,
-}: {
-  emails: string[]
-  onConnexion: (email: string) => void
-  onOublierEmail: (email: string) => void
-}) {
-  const [ouvert, setOuvert] = useState(false)
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -222,23 +92,63 @@ export function Connexion({
           </p>
 
           <button
-            onClick={() => setOuvert(true)}
+            onClick={onGoogle}
             className="mt-8 inline-flex w-full items-center justify-center gap-3 rounded-xl border border-bordure-forte bg-surface px-4 py-3 text-sm font-semibold text-encre-forte shadow-sm transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-accent-300 hover:bg-fond hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-500"
           >
             <LogoGoogle />
             Se connecter avec Google
           </button>
+
+          {/* Accès administrateur temporaire (repris à une étape ultérieure). */}
+          <div className="mt-8">
+            {!adminOuvert ? (
+              <button
+                type="button"
+                onClick={() => setAdminOuvert(true)}
+                className="text-xs font-medium text-doux underline-offset-2 transition-colors duration-200 hover:text-encre hover:underline"
+              >
+                Accès administrateur
+              </button>
+            ) : (
+              <form
+                onSubmit={validerAdmin}
+                className="animate-apparition space-y-3 text-left"
+              >
+                <div className="flex items-center gap-2 text-xs text-doux">
+                  <span className="h-px flex-1 bg-bordure-forte" />
+                  Accès administrateur (temporaire)
+                  <span className="h-px flex-1 bg-bordure-forte" />
+                </div>
+                <input
+                  type="email"
+                  autoFocus
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    setErreur(null)
+                  }}
+                  placeholder="Adresse email administrateur"
+                  className={classesInput}
+                />
+                {erreur && <Alerte>{erreur}</Alerte>}
+                <div className="flex items-center justify-between gap-2">
+                  <Button
+                    type="button"
+                    variante="fantome"
+                    onClick={() => {
+                      setAdminOuvert(false)
+                      setErreur(null)
+                    }}
+                  >
+                    Annuler
+                  </Button>
+                  <Button type="submit">Entrer</Button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       </div>
-
-      {ouvert && (
-        <EcranGoogle
-          emails={emails}
-          onValider={onConnexion}
-          onOublier={onOublierEmail}
-          onAnnuler={() => setOuvert(false)}
-        />
-      )}
     </div>
   )
 }

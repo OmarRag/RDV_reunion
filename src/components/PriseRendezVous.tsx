@@ -131,8 +131,9 @@ export function PriseRendezVous({
 }) {
   const [etape, setEtape] = useState(0)
   const [profil, setProfil] = useState<Profil | ''>('')
-  const [nom, setNom] = useState('')
-  const [prenom, setPrenom] = useState('')
+  // Pré-remplissage depuis le compte Google, librement modifiable ensuite.
+  const [nom, setNom] = useState(() => store.currentUser?.nom ?? '')
+  const [prenom, setPrenom] = useState(() => store.currentUser?.prenom ?? '')
   const [objectif, setObjectif] = useState('')
   const [slotId, setSlotId] = useState('')
   const [erreur, setErreur] = useState<string | null>(null)

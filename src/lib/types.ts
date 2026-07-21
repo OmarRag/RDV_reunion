@@ -12,6 +12,12 @@ export type Profil = (typeof PROFILS)[number]
 
 export type CurrentUser = {
   email: string
+  /** Nom complet issu du compte Google (utilisateurs authentifiés). */
+  name?: string
+  /** Prénom Google, pour pré-remplir le formulaire de rdv (modifiable). */
+  prenom?: string
+  /** Nom de famille Google, pour pré-remplir le formulaire de rdv (modifiable). */
+  nom?: string
 }
 
 export type Admin = {
