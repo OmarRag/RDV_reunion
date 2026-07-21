@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+/*
+ * Palette claire « plateforme technologique » : fonds ivoire / blanc cassé,
+ * texte anthracite doux (jamais de noir pur), un accent bleu pétrole
+ * discret et un accent vert assorti au pictogramme du logo.
+ */
+@theme {
+  /* Fonds : du plus clair au plus soutenu. */
+  --color-fond: #f7f5f0;
+  --color-fond-2: #efece4;
+  --color-fond-3: #e6e2d8;
+  --color-surface: #fffdf9;
+  --color-bordure: #e3ded2;
+  --color-bordure-forte: #d2ccbd;
+
+  /* Panneau de connexion : gris moyen, ni très clair ni sombre. */
+  --color-panneau: #bfc4cb;
+  --color-panneau-bord: #a8aeb6;
+
+  /* Textes : anthracite doux plutôt que noir. */
+  --color-encre: #3b4048;
+  --color-encre-forte: #2c3138;
+  --color-doux: #7a7f88;
+
+  /* Accent principal : bleu pétrole sourd. */
+  --color-accent-100: #e3edf2;
+  --color-accent-200: #c6dbe6;
+  --color-accent-300: #8fb6c9;
+  --color-accent-400: #5d92ac;
+  --color-accent-500: #3d7590;
+  --color-accent-600: #2f5c73;
+
+  /* Accent secondaire : vert du logo, adouci. */
+  --color-vert-100: #e4efe6;
+  --color-vert-300: #9dc3a6;
+  --color-vert-500: #47804f;
+  --color-vert-600: #3a6a41;
+
+  /* États. */
+  --color-ambre-100: #f7efdd;
+  --color-ambre-300: #d9b877;
+  --color-ambre-600: #8a6a24;
+  --color-brique-100: #f5e4e1;
+  --color-brique-300: #d3a29b;
+  --color-brique-500: #a8544a;
+  --color-brique-600: #8f4239;
+
+  --animate-apparition: apparition 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-etape: etape 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-voile: voile 0.25s ease-out both;
+}
+
+@keyframes apparition {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes etape {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes voile {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--color-encre);
+  background-color: var(--color-fond);
+}
+
+/* Fond de l'application : ivoire nuancé plutôt qu'un blanc plat. */
+.fond-app {
+  background:
+    radial-gradient(
+      70rem 40rem at 10% -12%,
+      rgba(61, 117, 144, 0.09),
+      transparent 62%
+    ),
+    radial-gradient(
+      58rem 34rem at 94% 4%,
+      rgba(71, 128, 79, 0.07),
+      transparent 62%
+    ),
+    linear-gradient(180deg, var(--color-surface) 0%, var(--color-fond-2) 100%);
+  background-attachment: fixed;
+}
+
+/* Respect des préférences système de réduction d'animation. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
