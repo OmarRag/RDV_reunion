@@ -1,6 +1,10 @@
+'use client'
+
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import type { AppointmentStatus, SlotStatus } from '../lib/types'
-import logo from '../assets/logo_ptr.jpeg'
+
+/** Servi tel quel depuis `public/` : aucune transformation, aucun recadrage. */
+const logo = '/logo_ptr.jpeg'
 
 /**
  * Logo tel que fourni : aucun cadre ni fond ajouté, il porte déjà le sien.

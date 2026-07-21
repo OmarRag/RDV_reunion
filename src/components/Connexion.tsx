@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import { Alerte, Button, Logo, classesInput } from './ui'
 

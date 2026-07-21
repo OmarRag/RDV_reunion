@@ -1,3 +1,5 @@
+'use client'
+
 import { useMemo, useState } from 'react'
 import { formatDateHeure, formatSlot } from '../lib/format'
 import type { AppointmentStatus } from '../lib/types'

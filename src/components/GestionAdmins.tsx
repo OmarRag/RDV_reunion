@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import { DIRECTEUR_EMAIL } from '../lib/types'
 import type { Store } from '../lib/store'

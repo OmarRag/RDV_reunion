@@ -1,3 +1,5 @@
+'use client'
+
 import { useMemo, useState } from 'react'
 import { grouperParJour, heureFin } from '../lib/creneaux'
 import { formatDate, formatSlot } from '../lib/format'

@@ -1,3 +1,5 @@
+'use client'
+
 import { useMemo } from 'react'
 import { formatDateHeure, formatSlot } from '../lib/format'
 import type { Store } from '../lib/store'

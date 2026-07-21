@@ -1,12 +1,14 @@
+'use client'
+
 import { useEffect, useMemo, useState } from 'react'
-import { Connexion } from './components/Connexion'
-import { GestionAdmins } from './components/GestionAdmins'
-import { GestionCreneaux } from './components/GestionCreneaux'
-import { GestionRendezVous } from './components/GestionRendezVous'
-import { MesRendezVous } from './components/MesRendezVous'
-import { PriseRendezVous } from './components/PriseRendezVous'
-import { Alerte, Button, Logo } from './components/ui'
-import { useStore } from './lib/store'
+import { Connexion } from './Connexion'
+import { GestionAdmins } from './GestionAdmins'
+import { GestionCreneaux } from './GestionCreneaux'
+import { GestionRendezVous } from './GestionRendezVous'
+import { MesRendezVous } from './MesRendezVous'
+import { PriseRendezVous } from './PriseRendezVous'
+import { Alerte, Button, Logo } from './ui'
+import { useStore } from '../lib/store'
 
 type Onglet = { cle: string; libelle: string }
 
@@ -74,7 +76,7 @@ function Navigation({
   )
 }
 
-export default function App() {
+export function AppRdv() {
   const store = useStore()
   const { currentUser, role } = store
 
