@@ -1,132 +1,86 @@
+'use client'
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as storage from './storage'
-import { datesDeLaSemaine } from './creneaux'
-import { DIRECTEUR_EMAIL } from './types'
+import { calculerRole, normaliserEmail } from './roles'
 import type {
   Admin,
   Appointment,
   CurrentUser,
   Profil,
-  Role,
   Slot,
 } from './types'
 
-export function normaliserEmail(email: string): string {
-  return email.trim().toLowerCase()
+// Réexports pour compatibilité avec les anciens imports.
+export { calculerRole, normaliserEmail } from './roles'
+
+type EtatPartage = {
+  slots: Slot[]
+  appointments: Appointment[]
+  admins: Admin[]
 }
 
-export function calculerRole(
-  email: string | undefined,
-  admins: Admin[],
-): Role {
-  if (!email) {
-    return {
-      isDirecteur: false,
-      isAdmin: false,
-      canManageAppointments: false,
-      canManageSlots: false,
-      canManageAdmins: false,
-    }
-  }
-  const e = normaliserEmail(email)
-  if (e === DIRECTEUR_EMAIL) {
-    return {
-      isDirecteur: true,
-      isAdmin: true,
-      canManageAppointments: true,
-      canManageSlots: true,
-      canManageAdmins: true,
-    }
-  }
-  const admin = admins.find((a) => normaliserEmail(a.email) === e)
-  if (!admin) {
-    return {
-      isDirecteur: false,
-      isAdmin: false,
-      canManageAppointments: false,
-      canManageSlots: false,
-      canManageAdmins: false,
-    }
-  }
-  return {
-    isDirecteur: false,
-    isAdmin: true,
-    canManageAppointments: admin.canManageAppointments,
-    canManageSlots: admin.canManageSlots,
-    // La gestion des admins reste exclusive au directeur.
-    canManageAdmins: false,
-  }
-}
+const ETAT_VIDE: EtatPartage = { slots: [], appointments: [], admins: [] }
 
-/**
- * Recalcule le statut de chaque créneau à partir des rendez-vous.
- * Source de vérité : le rendez-vous. Un créneau est « en_attente » ou
- * « confirme » uniquement s'il existe un rdv correspondant, sinon « libre ».
- */
-function reconcilier(slots: Slot[], appointments: Appointment[]): Slot[] {
-  return slots.map((slot) => {
-    const rdv = appointments.find(
-      (a) => a.slotId === slot.id && a.status !== 'refuse',
-    )
-    const attendu: Slot['status'] = !rdv
-      ? 'libre'
-      : rdv.status === 'accepte'
-        ? 'confirme'
-        : 'en_attente'
-    return slot.status === attendu ? slot : { ...slot, status: attendu }
-  })
-}
+/** Intervalle de rafraîchissement des données partagées, en millisecondes. */
+const INTERVALLE_SYNC = 5000
+
+const ERREUR_RESEAU = 'Connexion au serveur impossible. Veuillez réessayer.'
 
 export function useStore() {
+  // Session locale à l'appareil : conservée en localStorage, comme avant.
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() =>
     storage.get('currentUser'),
   )
-  const [admins, setAdmins] = useState<Admin[]>(() => storage.get('admins'))
-  const [slots, setSlots] = useState<Slot[]>(() => storage.get('slots'))
-  const [appointments, setAppointments] = useState<Appointment[]>(() =>
-    storage.get('appointments'),
-  )
-  // Emails déjà utilisés sur cet appareil, proposés à la connexion suivante.
   const [emails, setEmails] = useState<string[]>(() => storage.get('emails'))
 
-  // Cohérence au démarrage : aligne les créneaux sur les rendez-vous.
-  useEffect(() => {
-    setSlots((prev) => {
-      const next = reconcilier(prev, storage.get('appointments'))
-      return next.some((s, i) => s !== prev[i]) ? next : prev
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Données PARTAGÉES : lues depuis la base Neon via l'API.
+  const [etat, setEtat] = useState<EtatPartage>(ETAT_VIDE)
 
   useEffect(() => {
     storage.set('currentUser', currentUser)
   }, [currentUser])
   useEffect(() => {
-    storage.set('admins', admins)
-  }, [admins])
-  useEffect(() => {
-    storage.set('slots', slots)
-  }, [slots])
-  useEffect(() => {
-    storage.set('appointments', appointments)
-  }, [appointments])
-  useEffect(() => {
     storage.set('emails', emails)
   }, [emails])
 
+  const rafraichir = useCallback(async () => {
+    try {
+      const res = await fetch('/api/state', { cache: 'no-store' })
+      if (!res.ok) return
+      setEtat((await res.json()) as EtatPartage)
+    } catch {
+      // Réseau indisponible : on conserve l'état courant sans le vider.
+    }
+  }, [])
+
+  // Chargement initial, puis rafraîchissement périodique et au retour sur
+  // l'onglet : les données partagées restent à jour entre appareils.
+  useEffect(() => {
+    rafraichir()
+    const timer = setInterval(rafraichir, INTERVALLE_SYNC)
+    const onFocus = () => rafraichir()
+    window.addEventListener('focus', onFocus)
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [rafraichir])
+
   const role = useMemo(
-    () => calculerRole(currentUser?.email, admins),
-    [currentUser, admins],
+    () => calculerRole(currentUser?.email, etat.admins),
+    [currentUser, etat.admins],
   )
+
+  // --- Session ---
 
   const seConnecter = useCallback((email: string) => {
     const e = normaliserEmail(email)
     setCurrentUser({ email: e })
-    // Mémorisation sans doublon, le plus récent en tête.
+    // Mémorisation sans doublon, le plus récent en tête (local à l'appareil).
     setEmails((prev) => [e, ...prev.filter((x) => x !== e)])
   }, [])
 
-  /** Retire un email de la liste mémorisée sur cet appareil. */
   const oublierEmail = useCallback((email: string) => {
     const e = normaliserEmail(email)
     setEmails((prev) => prev.filter((x) => x !== e))
@@ -139,147 +93,133 @@ export function useStore() {
 
   // --- Créneaux ---
 
-  /**
-   * Génère les créneaux d'une semaine à partir des heures retenues par
-   * le directeur, jour par jour (index 0 = lundi … 4 = vendredi).
-   * Les créneaux déjà existants sont conservés tels quels.
-   */
   const genererCreneauxSemaine = useCallback(
-    (
+    async (
       lundiISO: string,
       heuresParJour: string[][],
-    ): { erreur: string | null; ajoutes: number } => {
-      const dates = datesDeLaSemaine(lundiISO)
-      const nouveaux: Slot[] = []
-
-      for (let i = 0; i < dates.length; i++) {
-        const date = dates[i]
-        // Un jour peut rester vide : aucune disponibilité ce jour-là.
-        for (const time of heuresParJour[i] ?? []) {
-          const existeDeja =
-            slots.some((s) => s.date === date && s.time === time) ||
-            nouveaux.some((s) => s.date === date && s.time === time)
-          if (existeDeja) continue
-          nouveaux.push({ id: storage.uid(), date, time, status: 'libre' })
-        }
+    ): Promise<{ erreur: string | null; ajoutes: number }> => {
+      try {
+        const res = await fetch('/api/slots', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lundiISO, heuresParJour }),
+        })
+        const data = await res.json()
+        await rafraichir()
+        return { erreur: data.erreur ?? null, ajoutes: data.ajoutes ?? 0 }
+      } catch {
+        return { erreur: ERREUR_RESEAU, ajoutes: 0 }
       }
-
-      if (nouveaux.length === 0) {
-        return {
-          erreur:
-            'Aucun nouveau créneau à générer : aucune heure retenue, ou toutes existent déjà.',
-          ajoutes: 0,
-        }
-      }
-      setSlots((prev) => [...prev, ...nouveaux])
-      return { erreur: null, ajoutes: nouveaux.length }
     },
-    [slots],
+    [rafraichir],
   )
 
-  const supprimerSlot = useCallback((id: string) => {
-    setSlots((prev) => prev.filter((s) => s.id !== id || s.status !== 'libre'))
-  }, [])
+  const supprimerSlot = useCallback(
+    async (id: string): Promise<void> => {
+      try {
+        await fetch(`/api/slots/${id}`, { method: 'DELETE' })
+        await rafraichir()
+      } catch {
+        /* ignoré : le prochain rafraîchissement rétablira l'état réel */
+      }
+    },
+    [rafraichir],
+  )
 
   // --- Rendez-vous ---
 
   const creerRendezVous = useCallback(
-    (data: {
+    async (data: {
       profil: Profil
       nom: string
       prenom: string
       objectif: string
       slotId: string
-    }): string | null => {
+    }): Promise<string | null> => {
       if (!currentUser) return 'Vous devez être connecté.'
-
-      // Verrou : on ne réserve que si le créneau est encore libre.
-      const slot = slots.find((s) => s.id === data.slotId)
-      if (!slot) return 'Créneau introuvable.'
-      if (slot.status !== 'libre') {
-        return 'Ce créneau vient d’être pris. Veuillez en choisir un autre.'
+      try {
+        const res = await fetch('/api/appointments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...data, userEmail: currentUser.email }),
+        })
+        const body = await res.json()
+        await rafraichir()
+        return body.erreur ?? null
+      } catch {
+        return ERREUR_RESEAU
       }
-
-      const rdv: Appointment = {
-        id: storage.uid(),
-        userEmail: currentUser.email,
-        profil: data.profil,
-        nom: data.nom.trim(),
-        prenom: data.prenom.trim(),
-        objectif: data.objectif.trim(),
-        slotId: data.slotId,
-        status: 'en_attente',
-        createdAt: new Date().toISOString(),
-      }
-      setAppointments((prev) => [...prev, rdv])
-      setSlots((prev) =>
-        prev.map((s) =>
-          s.id === data.slotId ? { ...s, status: 'en_attente' } : s,
-        ),
-      )
-      return null
     },
-    [currentUser, slots],
+    [currentUser, rafraichir],
+  )
+
+  const changerStatut = useCallback(
+    async (id: string, action: 'accepter' | 'refuser') => {
+      try {
+        await fetch(`/api/appointments/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }),
+        })
+        await rafraichir()
+      } catch {
+        /* ignoré : le prochain rafraîchissement rétablira l'état réel */
+      }
+    },
+    [rafraichir],
   )
 
   const accepterRendezVous = useCallback(
-    (id: string) => {
-      const rdv = appointments.find((a) => a.id === id)
-      if (!rdv || rdv.status !== 'en_attente') return
-      const suivants = appointments.map((a) =>
-        a.id === id ? { ...a, status: 'accepte' as const } : a,
-      )
-      setAppointments(suivants)
-      setSlots((prev) => reconcilier(prev, suivants))
-    },
-    [appointments],
+    (id: string) => changerStatut(id, 'accepter'),
+    [changerStatut],
   )
-
   const refuserRendezVous = useCallback(
-    (id: string) => {
-      const rdv = appointments.find((a) => a.id === id)
-      if (!rdv || rdv.status !== 'en_attente') return
-      const suivants = appointments.map((a) =>
-        a.id === id ? { ...a, status: 'refuse' as const } : a,
-      )
-      setAppointments(suivants)
-      // Le créneau redevient libre, sauf s'il est repris par un autre rdv.
-      setSlots((prev) => reconcilier(prev, suivants))
-    },
-    [appointments],
+    (id: string) => changerStatut(id, 'refuser'),
+    [changerStatut],
   )
 
   // --- Admins ---
 
   const ajouterAdmin = useCallback(
-    (
+    async (
       email: string,
       perms: { canManageAppointments: boolean; canManageSlots: boolean },
-    ): string | null => {
-      const e = normaliserEmail(email)
-      if (!e) return 'Veuillez saisir une adresse email.'
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return 'Adresse email invalide.'
-      if (e === DIRECTEUR_EMAIL) return 'Le directeur est déjà administrateur.'
-      if (admins.some((a) => normaliserEmail(a.email) === e)) {
-        return 'Cet administrateur existe déjà.'
+    ): Promise<string | null> => {
+      try {
+        const res = await fetch('/api/admins', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, ...perms }),
+        })
+        const body = await res.json()
+        await rafraichir()
+        return body.erreur ?? null
+      } catch {
+        return ERREUR_RESEAU
       }
-      setAdmins((prev) => [...prev, { email: e, ...perms }])
-      return null
     },
-    [admins],
+    [rafraichir],
   )
 
-  const supprimerAdmin = useCallback((email: string) => {
-    const e = normaliserEmail(email)
-    if (e === DIRECTEUR_EMAIL) return
-    setAdmins((prev) => prev.filter((a) => normaliserEmail(a.email) !== e))
-  }, [])
+  const supprimerAdmin = useCallback(
+    async (email: string): Promise<void> => {
+      try {
+        await fetch(`/api/admins/${encodeURIComponent(normaliserEmail(email))}`, {
+          method: 'DELETE',
+        })
+        await rafraichir()
+      } catch {
+        /* ignoré : le prochain rafraîchissement rétablira l'état réel */
+      }
+    },
+    [rafraichir],
+  )
 
   return {
     currentUser,
-    admins,
-    slots,
-    appointments,
+    slots: etat.slots,
+    appointments: etat.appointments,
+    admins: etat.admins,
     emails,
     role,
     seConnecter,

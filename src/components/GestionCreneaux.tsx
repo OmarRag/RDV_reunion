@@ -168,7 +168,7 @@ export function GestionCreneaux({ store }: { store: Store }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plageOuverte, plages])
 
-  function generer(e: React.FormEvent) {
+  async function generer(e: React.FormEvent) {
     e.preventDefault()
     setSucces(null)
 
@@ -192,7 +192,7 @@ export function GestionCreneaux({ store }: { store: Store }) {
       ...new Set(liste.flatMap(heuresRetenues)),
     ])
 
-    const { erreur: err, ajoutes } = store.genererCreneauxSemaine(
+    const { erreur: err, ajoutes } = await store.genererCreneauxSemaine(
       lundi,
       heuresParJour,
     )

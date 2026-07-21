@@ -159,9 +159,9 @@ export function PriseRendezVous({
     setEtape((e) => Math.max(0, e - 1))
   }
 
-  function confirmer() {
+  async function confirmer() {
     if (!profil) return
-    const err = store.creerRendezVous({
+    const err = await store.creerRendezVous({
       profil,
       nom,
       prenom,

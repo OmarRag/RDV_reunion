@@ -1,0 +1,54 @@
+// Schéma Prisma — base Neon (PostgreSQL).
+// Données PARTAGÉES entre tous les utilisateurs : créneaux, rendez-vous, admins.
+// La liste des emails mémorisés reste, elle, dans le localStorage de l'appareil.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Connexion applicative : idéalement l'URL « poolée » de Neon.
+  url       = env("DATABASE_URL")
+  // Connexion directe (non poolée), utilisée par les migrations.
+  // Avec l'intégration Vercel + Neon, cette variable existe déjà.
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+/// Créneau proposé par un administrateur.
+model Slot {
+  id     String @id @default(cuid())
+  /// Date au format ISO court : AAAA-MM-JJ.
+  date   String
+  /// Heure de début au format 24 h : HH:MM.
+  time   String
+  /// libre | en_attente | confirme — reflète le rendez-vous rattaché.
+  status String @default("libre")
+
+  // Un même horaire ne peut exister qu'une fois : dédoublonnage garanti côté base.
+  @@unique([date, time])
+}
+
+/// Demande de rendez-vous déposée par un utilisateur.
+model Appointment {
+  id        String   @id @default(cuid())
+  userEmail String
+  profil    String
+  nom       String
+  prenom    String
+  objectif  String
+  /// Référence l'identifiant d'un Slot (pas de clé étrangère stricte :
+  /// un créneau libre peut être supprimé même si un rdv refusé le cite encore,
+  /// comme dans l'ancien modèle localStorage).
+  slotId    String
+  /// en_attente | accepte | refuse.
+  status    String   @default("en_attente")
+  createdAt DateTime @default(now())
+}
+
+/// Administrateur secondaire (le directeur reste codé en dur, non stocké ici).
+model Admin {
+  email                 String  @id
+  canManageAppointments Boolean @default(true)
+  canManageSlots        Boolean @default(true)
+}

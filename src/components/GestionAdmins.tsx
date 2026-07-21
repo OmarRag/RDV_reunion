@@ -34,10 +34,10 @@ export function GestionAdmins({ store }: { store: Store }) {
   const [erreur, setErreur] = useState<string | null>(null)
   const [succes, setSucces] = useState<string | null>(null)
 
-  function ajouter(e: React.FormEvent) {
+  async function ajouter(e: React.FormEvent) {
     e.preventDefault()
     setSucces(null)
-    const err = store.ajouterAdmin(email, {
+    const err = await store.ajouterAdmin(email, {
       canManageAppointments: rdvPerm,
       canManageSlots: slotsPerm,
     })
