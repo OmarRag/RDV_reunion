@@ -3,7 +3,15 @@
 import { useState } from 'react'
 import { DIRECTEUR_EMAIL } from '../lib/types'
 import type { Store } from '../lib/store'
-import { Alerte, Button, Card, Champ, EtatVide, classesInput } from './ui'
+import {
+  Alerte,
+  BoutonConfirmation,
+  Button,
+  Card,
+  Champ,
+  EtatVide,
+  classesInput,
+} from './ui'
 
 function Case({
   label,
@@ -142,12 +150,15 @@ export function GestionAdmins({ store }: { store: Store }) {
                     .join(' · ') || 'Aucune permission'}
                 </p>
               </div>
-              <Button
+              <BoutonConfirmation
                 variante="danger"
-                onClick={() => store.supprimerAdmin(a.email)}
+                titre="Supprimer l’administrateur"
+                message={`Retirer « ${a.email} » de la liste des administrateurs ?`}
+                confirmationLabel="Supprimer"
+                onConfirm={() => store.supprimerAdmin(a.email)}
               >
                 Supprimer
-              </Button>
+              </BoutonConfirmation>
             </li>
           ))
         )}

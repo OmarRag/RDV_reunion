@@ -17,7 +17,15 @@ import {
 import { uid } from '../lib/storage'
 import { formatDate } from '../lib/format'
 import type { Store } from '../lib/store'
-import { Alerte, BadgeSlot, Button, Card, EtatVide, classesInput } from './ui'
+import {
+  Alerte,
+  BadgeSlot,
+  BoutonConfirmation,
+  Button,
+  Card,
+  EtatVide,
+  classesInput,
+} from './ui'
 
 /**
  * Une plage horaire d'un jour.
@@ -485,12 +493,15 @@ export function GestionCreneaux({ store }: { store: Store }) {
                         <BadgeSlot status={s.status} />
                       </div>
                       {s.status === 'libre' ? (
-                        <Button
+                        <BoutonConfirmation
                           variante="danger"
-                          onClick={() => store.supprimerSlot(s.id)}
+                          titre="Supprimer le créneau"
+                          message={`Supprimer le créneau ${s.time} – ${heureFin(s.time)} ?`}
+                          confirmationLabel="Supprimer"
+                          onConfirm={() => store.supprimerSlot(s.id)}
                         >
                           Supprimer
-                        </Button>
+                        </BoutonConfirmation>
                       ) : (
                         <span className="text-xs text-doux">
                           Créneau occupé — suppression impossible

@@ -7,7 +7,7 @@ import { GestionCreneaux } from './GestionCreneaux'
 import { GestionRendezVous } from './GestionRendezVous'
 import { MesRendezVous } from './MesRendezVous'
 import { PriseRendezVous } from './PriseRendezVous'
-import { Alerte, Button, Logo } from './ui'
+import { Alerte, BoutonConfirmation, Logo } from './ui'
 import { useStore } from '../lib/store'
 
 type Onglet = { cle: string; libelle: string }
@@ -37,9 +37,16 @@ function Entete({
           <span className="hidden text-sm text-doux sm:inline">
             {email}
           </span>
-          <Button variante="secondaire" onClick={onDeconnexion}>
+          <BoutonConfirmation
+            variante="secondaire"
+            varianteConfirmation="primaire"
+            titre="Se déconnecter"
+            message="Voulez-vous vraiment vous déconnecter ?"
+            confirmationLabel="Se déconnecter"
+            onConfirm={onDeconnexion}
+          >
             Se déconnecter
-          </Button>
+          </BoutonConfirmation>
         </div>
       </div>
     </header>

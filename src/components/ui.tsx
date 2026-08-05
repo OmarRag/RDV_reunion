@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import type { AppointmentStatus, SlotStatus } from '../lib/types'
 
@@ -63,6 +64,81 @@ export function Button({
       {...props}
       className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200 ease-out hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-40 ${VARIANTES[variante]} ${className}`}
     />
+  )
+}
+
+/**
+ * Bouton d'action destructrice avec confirmation : au clic, ouvre une petite
+ * fenêtre « Confirmer / Annuler » avant d'exécuter l'action.
+ */
+export function BoutonConfirmation({
+  children,
+  onConfirm,
+  message,
+  titre = 'Confirmer l’action',
+  confirmationLabel = 'Confirmer',
+  variante = 'danger',
+  varianteConfirmation,
+  className = '',
+}: {
+  children: ReactNode
+  onConfirm: () => void
+  message: string
+  titre?: string
+  confirmationLabel?: string
+  variante?: ButtonProps['variante']
+  varianteConfirmation?: ButtonProps['variante']
+  className?: string
+}) {
+  const [ouvert, setOuvert] = useState(false)
+
+  return (
+    <>
+      <Button
+        type="button"
+        variante={variante}
+        className={className}
+        onClick={() => setOuvert(true)}
+      >
+        {children}
+      </Button>
+
+      {ouvert && (
+        <div
+          className="animate-voile fixed inset-0 z-50 flex items-center justify-center bg-encre/40 p-4 backdrop-blur-sm"
+          onClick={() => setOuvert(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="animate-apparition w-full max-w-sm rounded-2xl border border-bordure bg-surface p-6 shadow-2xl shadow-encre/20"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold text-encre-forte">{titre}</h3>
+            <p className="mt-2 text-sm text-encre">{message}</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                type="button"
+                variante="secondaire"
+                onClick={() => setOuvert(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                variante={varianteConfirmation ?? variante}
+                onClick={() => {
+                  setOuvert(false)
+                  onConfirm()
+                }}
+              >
+                {confirmationLabel}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
