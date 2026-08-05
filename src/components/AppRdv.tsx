@@ -117,6 +117,8 @@ export function AppRdv() {
     return (
       <Connexion
         onGoogle={store.seConnecterGoogle}
+        onDemanderCode={store.demanderCodeEmail}
+        onConnecterCode={store.seConnecterParCode}
         onAdminLogin={store.seConnecterAdmin}
       />
     )

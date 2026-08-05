@@ -52,3 +52,13 @@ model Admin {
   canManageAppointments Boolean @default(true)
   canManageSlots        Boolean @default(true)
 }
+
+/// Code de connexion à usage unique envoyé par email (méthode alternative à Google).
+/// Une seule entrée active par email : une nouvelle demande écrase la précédente.
+model EmailOtp {
+  email     String   @id
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+}

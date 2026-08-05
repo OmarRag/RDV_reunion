@@ -46,23 +46,64 @@ function ColonneImage() {
   )
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 export function Connexion({
   onGoogle,
+  onDemanderCode,
+  onConnecterCode,
   onAdminLogin,
 }: {
   onGoogle: () => void
+  onDemanderCode: (email: string) => Promise<string | null>
+  onConnecterCode: (email: string, code: string) => Promise<string | null>
   onAdminLogin: (email: string) => void
 }) {
+  // Connexion par code email.
+  const [emailCode, setEmailCode] = useState('')
+  const [code, setCode] = useState('')
+  const [codeEnvoye, setCodeEnvoye] = useState(false)
+  const [occupe, setOccupe] = useState(false)
+  const [messageCode, setMessageCode] = useState<string | null>(null)
+  const [erreurCode, setErreurCode] = useState<string | null>(null)
+
   // Accès administrateur temporaire : replié par défaut.
   const [adminOuvert, setAdminOuvert] = useState(false)
   const [email, setEmail] = useState('')
   const [erreur, setErreur] = useState<string | null>(null)
 
+  async function demanderCode(e: React.FormEvent) {
+    e.preventDefault()
+    const valeur = emailCode.trim()
+    setErreurCode(null)
+    if (!EMAIL_RE.test(valeur)) return setErreurCode('Adresse email invalide.')
+    setOccupe(true)
+    const err = await onDemanderCode(valeur)
+    setOccupe(false)
+    if (err) return setErreurCode(err)
+    setCodeEnvoye(true)
+    setMessageCode(`Code envoyé à ${valeur}. Vérifiez votre boîte mail.`)
+  }
+
+  async function validerCode(e: React.FormEvent) {
+    e.preventDefault()
+    setErreurCode(null)
+    if (!/^\d{6}$/.test(code.trim())) {
+      return setErreurCode('Le code comporte 6 chiffres.')
+    }
+    setOccupe(true)
+    const err = await onConnecterCode(emailCode.trim(), code.trim())
+    setOccupe(false)
+    if (err) return setErreurCode(err)
+    // Session établie : on recharge pour que l'app reflète l'état connecté.
+    window.location.reload()
+  }
+
   function validerAdmin(e: React.FormEvent) {
     e.preventDefault()
     const valeur = email.trim()
     if (!valeur) return setErreur('Veuillez saisir votre adresse email.')
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valeur)) {
+    if (!EMAIL_RE.test(valeur)) {
       return setErreur('Adresse email invalide.')
     }
     onAdminLogin(valeur)
@@ -98,6 +139,68 @@ export function Connexion({
             <LogoGoogle />
             Se connecter avec Google
           </button>
+
+          {/* Connexion alternative : code à usage unique reçu par email. */}
+          <div className="mt-6">
+            <div className="mb-4 flex items-center gap-3 text-xs text-doux">
+              <span className="h-px flex-1 bg-bordure-forte" />
+              ou par email
+              <span className="h-px flex-1 bg-bordure-forte" />
+            </div>
+
+            {!codeEnvoye ? (
+              <form onSubmit={demanderCode} className="space-y-3 text-left">
+                <input
+                  type="email"
+                  value={emailCode}
+                  onChange={(e) => {
+                    setEmailCode(e.target.value)
+                    setErreurCode(null)
+                  }}
+                  placeholder="Votre adresse email"
+                  className={classesInput}
+                />
+                {erreurCode && <Alerte>{erreurCode}</Alerte>}
+                <Button type="submit" className="w-full" disabled={occupe}>
+                  {occupe ? 'Envoi…' : 'Recevoir un code'}
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={validerCode} className="space-y-3 text-left">
+                {messageCode && <Alerte type="succes">{messageCode}</Alerte>}
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  autoFocus
+                  value={code}
+                  onChange={(e) => {
+                    setCode(e.target.value.replace(/\D/g, ''))
+                    setErreurCode(null)
+                  }}
+                  placeholder="Code à 6 chiffres"
+                  className={`${classesInput} text-center text-lg tracking-[0.4em]`}
+                />
+                {erreurCode && <Alerte>{erreurCode}</Alerte>}
+                <Button type="submit" className="w-full" disabled={occupe}>
+                  {occupe ? 'Vérification…' : 'Se connecter'}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCodeEnvoye(false)
+                    setCode('')
+                    setMessageCode(null)
+                    setErreurCode(null)
+                  }}
+                  className="w-full text-xs font-medium text-doux underline-offset-2 transition-colors duration-200 hover:text-encre hover:underline"
+                >
+                  Changer d’email ou renvoyer un code
+                </button>
+              </form>
+            )}
+          </div>
 
           {/* Accès administrateur temporaire (repris à une étape ultérieure). */}
           <div className="mt-8">
