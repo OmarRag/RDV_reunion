@@ -106,43 +106,6 @@ export function useStore() {
     void signIn('google')
   }, [])
 
-  /** Demande l'envoi d'un code de connexion à usage unique par email. */
-  const demanderCodeEmail = useCallback(
-    async (email: string): Promise<string | null> => {
-      try {
-        const res = await fetch('/api/otp/request', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
-        })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) return data.erreur ?? "Envoi du code impossible."
-        return null
-      } catch {
-        return 'Connexion au serveur impossible. Veuillez réessayer.'
-      }
-    },
-    [],
-  )
-
-  /** Connecte l'utilisateur avec l'email + le code reçu. */
-  const seConnecterParCode = useCallback(
-    async (email: string, code: string): Promise<string | null> => {
-      try {
-        const res = await signIn('email-otp', {
-          email,
-          code,
-          redirect: false,
-        })
-        if (!res || res.error) return 'Code invalide ou expiré.'
-        return null
-      } catch {
-        return 'Connexion impossible. Veuillez réessayer.'
-      }
-    },
-    [],
-  )
-
   /** Accès administrateur temporaire par saisie d'email (comme avant). */
   const seConnecterAdmin = useCallback((email: string) => {
     const e = normaliserEmail(email)
@@ -201,6 +164,7 @@ export function useStore() {
       profil: Profil
       nom: string
       prenom: string
+      emailInstitutionnel: string
       objectif: string
       slotId: string
     }): Promise<string | null> => {
@@ -291,8 +255,6 @@ export function useStore() {
     admins: etat.admins,
     role,
     seConnecterGoogle,
-    demanderCodeEmail,
-    seConnecterParCode,
     seConnecterAdmin,
     seDeconnecter,
     genererCreneauxSemaine,

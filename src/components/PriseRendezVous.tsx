@@ -134,6 +134,10 @@ export function PriseRendezVous({
   // Pré-remplissage depuis le compte Google, librement modifiable ensuite.
   const [nom, setNom] = useState(() => store.currentUser?.nom ?? '')
   const [prenom, setPrenom] = useState(() => store.currentUser?.prenom ?? '')
+  // Pré-rempli avec l'email de connexion, modifiable (peut différer).
+  const [emailInstitutionnel, setEmailInstitutionnel] = useState(
+    () => store.currentUser?.email ?? '',
+  )
   const [objectif, setObjectif] = useState('')
   const [slotId, setSlotId] = useState('')
   const [erreur, setErreur] = useState<string | null>(null)
@@ -145,6 +149,9 @@ export function PriseRendezVous({
     if (etape === 0 && !profil) return setErreur('Veuillez choisir un profil.')
     if (etape === 1 && (!nom.trim() || !prenom.trim())) {
       return setErreur('Veuillez saisir votre nom et votre prénom.')
+    }
+    if (etape === 1 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInstitutionnel.trim())) {
+      return setErreur('Veuillez saisir un email institutionnel valide.')
     }
     if (etape === 2 && !objectif.trim()) {
       return setErreur('Veuillez décrire l’objectif de la réunion.')
@@ -166,6 +173,7 @@ export function PriseRendezVous({
       profil,
       nom,
       prenom,
+      emailInstitutionnel,
       objectif,
       slotId,
     })
@@ -231,6 +239,17 @@ export function PriseRendezVous({
                 placeholder="Ex. Sara"
               />
             </Champ>
+            <div className="sm:col-span-2">
+              <Champ label="Email institutionnel">
+                <input
+                  type="email"
+                  className={classesInput}
+                  value={emailInstitutionnel}
+                  onChange={(e) => setEmailInstitutionnel(e.target.value)}
+                  placeholder="Ex. prenom.nom@um6ss.ma"
+                />
+              </Champ>
+            </div>
           </div>
         )}
 
@@ -267,6 +286,7 @@ export function PriseRendezVous({
             {[
               ['Profil', profil],
               ['Nom et prénom', `${prenom} ${nom}`],
+              ['Email institutionnel', emailInstitutionnel],
               ['Objectif', objectif],
               ['Créneau', formatSlot(slotChoisi)],
             ].map(([cle, valeur]) => (

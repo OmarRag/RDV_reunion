@@ -14,6 +14,7 @@ export async function POST(req: Request) {
       profil: body.profil as Profil,
       nom: String(body.nom ?? ''),
       prenom: String(body.prenom ?? ''),
+      emailInstitutionnel: String(body.emailInstitutionnel ?? ''),
       objectif: String(body.objectif ?? ''),
       slotId: String(body.slotId ?? ''),
     })

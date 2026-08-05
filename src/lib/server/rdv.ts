@@ -41,6 +41,7 @@ export async function lireEtat(): Promise<EtatPartage> {
     appointments: appointments.map((a) => ({
       id: a.id,
       userEmail: a.userEmail,
+      emailInstitutionnel: a.emailInstitutionnel,
       profil: a.profil as Profil,
       nom: a.nom,
       prenom: a.prenom,
@@ -108,6 +109,7 @@ export async function creerRendezVous(data: {
   profil: Profil
   nom: string
   prenom: string
+  emailInstitutionnel: string
   objectif: string
   slotId: string
 }): Promise<string | null> {
@@ -124,6 +126,7 @@ export async function creerRendezVous(data: {
     await tx.appointment.create({
       data: {
         userEmail: data.userEmail,
+        emailInstitutionnel: data.emailInstitutionnel.trim(),
         profil: data.profil,
         nom: data.nom.trim(),
         prenom: data.prenom.trim(),

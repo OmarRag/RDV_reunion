@@ -74,7 +74,10 @@ export function GestionRendezVous({ store }: { store: Store }) {
                       </span>
                     </p>
                     <p className="mt-1 text-sm text-doux">
-                      {rdv.userEmail}
+                      Email institutionnel : {rdv.emailInstitutionnel || '—'}
+                    </p>
+                    <p className="text-xs text-doux">
+                      Compte de connexion : {rdv.userEmail}
                     </p>
                   </div>
                   <BadgeRdv status={rdv.status} />

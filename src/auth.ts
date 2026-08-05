@@ -1,9 +1,5 @@
 import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
-import Credentials from 'next-auth/providers/credentials'
-import { prisma } from './lib/prisma'
-import { normaliserEmail } from './lib/roles'
-import { OTP_MAX_ATTEMPTS, hacherCode } from './lib/otp'
 
 /**
  * Configuration NextAuth (Auth.js v5).
@@ -24,44 +20,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Laisse toujours l'utilisateur choisir son compte Google.
       authorization: { params: { prompt: 'select_account' } },
     }),
-    // Méthode alternative : code à usage unique reçu par email (voir /api/otp).
-    Credentials({
-      id: 'email-otp',
-      name: 'Code par email',
-      credentials: { email: {}, code: {} },
-      async authorize(creds) {
-        const email = normaliserEmail(String(creds?.email ?? ''))
-        const code = String(creds?.code ?? '')
-        if (!email || !/^\d{6}$/.test(code)) return null
-
-        const rec = await prisma.emailOtp.findUnique({ where: { email } })
-        if (!rec) return null
-
-        // Expiré ou trop de tentatives : on invalide.
-        if (rec.expiresAt < new Date() || rec.attempts >= OTP_MAX_ATTEMPTS) {
-          await prisma.emailOtp.delete({ where: { email } }).catch(() => {})
-          return null
-        }
-
-        if (hacherCode(code) !== rec.codeHash) {
-          await prisma.emailOtp.update({
-            where: { email },
-            data: { attempts: { increment: 1 } },
-          })
-          return null
-        }
-
-        // Succès : le code est consommé.
-        await prisma.emailOtp.delete({ where: { email } }).catch(() => {})
-        return { id: email, email }
-      },
-    }),
   ],
   callbacks: {
-    // Récupère prénom / nom réels depuis le profil Google au moment du login,
-    // et garantit la présence de l'email dans le token (Google comme code email).
-    jwt({ token, user, profile }) {
-      if (user?.email) token.email = user.email
+    // Récupère prénom / nom réels depuis le profil Google au moment du login.
+    jwt({ token, profile }) {
       if (profile) {
         const p = profile as { given_name?: string; family_name?: string }
         token.given_name = p.given_name ?? null

@@ -42,6 +42,8 @@ export type AppointmentStatus = 'en_attente' | 'accepte' | 'refuse'
 export type Appointment = {
   id: string
   userEmail: string
+  /** Email institutionnel saisi dans le formulaire (distinct du compte de connexion). */
+  emailInstitutionnel: string
   profil: Profil
   nom: string
   prenom: string

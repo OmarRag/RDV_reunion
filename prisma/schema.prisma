@@ -33,6 +33,8 @@ model Slot {
 model Appointment {
   id        String   @id @default(cuid())
   userEmail String
+  /// Email institutionnel saisi dans le formulaire (distinct du compte de connexion).
+  emailInstitutionnel String @default("")
   profil    String
   nom       String
   prenom    String
